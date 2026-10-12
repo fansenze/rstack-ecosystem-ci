@@ -1,5 +1,63 @@
 [
   {
+    "commitSha": "1be68da36cdb7ab0b5062495e93a40d82f637580",
+    "commitTimestamp": "2026-10-12T06:42:19Z",
+    "commitMessage": "perf(core): avoid asset descriptor lookups in file size reporting (#8657)",
+    "author": {
+      "name": "Jiahan Chen",
+      "email": "chenjiahan.jait@bytedance.com",
+      "login": "chenjiahan"
+    },
+    "repository": {
+      "fullName": "web-infra-dev/rsbuild",
+      "name": "rsbuild"
+    },
+    "workflowRunUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725",
+    "overallStatus": "success",
+    "suites": [
+      {
+        "name": "lynx-stack",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725/job/114693938800"
+      },
+      {
+        "name": "rstest",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725/job/114693938871"
+      },
+      {
+        "name": "examples",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725/job/114693938881"
+      },
+      {
+        "name": "rstack-cli",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725/job/114693938964"
+      },
+      {
+        "name": "modernjs",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725/job/114693938972"
+      },
+      {
+        "name": "rslib",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725/job/114693939026"
+      },
+      {
+        "name": "plugins",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725/job/114693939034"
+      },
+      {
+        "name": "rspress",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38213861725/job/114693939100"
+      }
+    ]
+  },
+  {
     "commitSha": "165cbf66760153deea59fac58170484c96809dca",
     "commitTimestamp": "2026-10-12T06:03:18Z",
     "commitMessage": "perf(core): bound file size compression across environments (#8656)",
