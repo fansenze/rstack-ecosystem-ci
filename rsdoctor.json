@@ -1,5 +1,28 @@
 [
   {
+    "commitSha": "6c64bd317c89f899dfa3153efb99e320d00a1727",
+    "commitTimestamp": "2026-10-12T05:59:28Z",
+    "commitMessage": "chore(deps): update dependency @lynx-js/react to ^0.127.0 (#2092)",
+    "author": {
+      "name": "renovate[bot]",
+      "email": "29139614+renovate[bot]@users.noreply.github.com",
+      "login": "renovate[bot]"
+    },
+    "repository": {
+      "fullName": "web-infra-dev/rsdoctor",
+      "name": "rsdoctor"
+    },
+    "workflowRunUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38210414712",
+    "overallStatus": "success",
+    "suites": [
+      {
+        "name": "rsbuild",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38210414712/job/114683096953"
+      }
+    ]
+  },
+  {
     "commitSha": "6af0d9aa2f504362688ba4df32d8eceeee334028",
     "commitTimestamp": "2026-10-10T08:52:14Z",
     "commitMessage": "fix(types): remove EMO remnants (#2088)",
