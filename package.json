@@ -19,7 +19,8 @@
     "format": "rs fmt",
     "lint": "rs lint",
     "prepare": "rs hooks",
-    "test": "tsx ecosystem-ci.ts"
+    "test": "tsx ecosystem-ci.ts",
+    "test:rslint": "tsx --test scripts/tests/rslint.test.ts"
   },
   "dependencies": {
     "@actions/cache": "^4.1.0",

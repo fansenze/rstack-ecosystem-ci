@@ -39,6 +39,26 @@ The repositories are checked out into `workspace` subdirectory as shallow clones
 - `pnpm test --stack rspack modernjs` (rspack suites include modernjs, rspress, rsbuild, rslib, rstest, rsdoctor, examples, devserver, plugin, lynx-stack, \_selftest)
 - `pnpm test --stack rspress rspress-plugins`: build Rspress and run the [Rspress plugins](https://github.com/rstackjs/rspress-plugins) package builds, documentation builds, unit tests, and Chromium E2E tests
 
+### Rslint
+
+The Rslint suites build and lint Rsbuild, Rslib, and Rstest with type checking enabled. Rsbuild and Rslib exercise Rslint through Rstack; Rstest uses the Rslint CLI directly.
+
+```bash
+pnpm test --stack rslint --branch main rsbuild
+pnpm test --stack rslint --release 0.9.5 rstest
+pnpm test:rslint
+```
+
+Source builds require Go (the version in Rslint's `go.mod`), Rust, and the initialized `typescript-go` submodule. They build the Go CLI, native parser, schemas, and JavaScript entrypoints. Local suites pack `@rslint/core` and the host `@rslint/native-*` package into tarballs so workspace and catalog dependencies resolve as they do in published packages. Tarball paths include a content digest so reruns cannot reuse stale same-version binaries.
+
+GitHub Actions publishes the same two packages to a local Verdaccio registry with a unique `<version>-fresh.<runId>.<runAttempt>` version. After installing overrides, each suite checks the core and native versions from the actual caller's dependency tree and verifies required artifacts. Independently versioned tsgo server packages use their published versions.
+
+The Rslint selected workflow builds the branch, tag, or commit provided in its `ref` input. Use the CLI's `--release` option to test a published registry version.
+
+To enable the upstream workflow, first merge this repository's Rslint integration, then configure `REPO_RSLINT_ECO_CI_GITHUB_TOKEN` in `web-infra-dev/rslint` and merge its `.github/workflows/ecosystem-ci.yml`. The token needs access to `rstackjs/rstack-ecosystem-ci` with **Actions read/write**. History publishing uses this repository's own `GITHUB_TOKEN`; the dispatch token needs no Contents permission. Upstream comments use the upstream workflow's `GITHUB_TOKEN`.
+
+The upstream workflow pins the existing shared dispatch actions. This integration does not change those actions or `ecosystem-ci-result`, so it requires no shared-action release or pin updates in the other stacks. Downstream workflows and build actions are picked up through the dispatch bridge's `ref: main`.
+
 # How to add a new integration test
 
 - check out the existing suites under `tests/<stack>` and add one yourself. Thanks to the shared utilities it is really easy

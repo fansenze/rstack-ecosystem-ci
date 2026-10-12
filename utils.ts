@@ -6,8 +6,18 @@ import actionsCore from '@actions/core';
 //eslint-disable-next-line n/no-unpublished-import
 import { AGENTS, detect, getCommand, serializeCommand } from '@antfu/ni';
 import { getPackages } from '@manypkg/get-packages';
-import { type Options as ExecaOptions, execaCommand } from 'execa';
+import {
+  type Options as ExecaOptions,
+  execa as execaFile,
+  execaCommand,
+} from 'execa';
 import yaml from 'yaml';
+import {
+  getRslintPackages,
+  packRslintPackages,
+  verifyRslintBuild,
+  verifyRslintInstall,
+} from './rslint';
 import type {
   Agent,
   EnvironmentData,
@@ -29,6 +39,7 @@ const STACK_WORKSPACE_DIR: Record<Stack, string> = {
   rslib: 'rslib',
   rsdoctor: 'rsdoctor',
   rspress: 'rspress',
+  rslint: 'rslint',
 };
 
 const STACK_DEFAULT_REPO: Record<Stack, string> = {
@@ -38,6 +49,7 @@ const STACK_DEFAULT_REPO: Record<Stack, string> = {
   rslib: 'web-infra-dev/rslib',
   rsdoctor: 'web-infra-dev/rsdoctor',
   rspress: 'web-infra-dev/rspress',
+  rslint: 'web-infra-dev/rslint',
 };
 
 let activeStack: Stack = 'rsbuild';
@@ -86,11 +98,10 @@ export async function $(literals: TemplateStringsArray, ...values: unknown[]) {
 
   const proc = execaCommand(cmd, {
     env,
-    stdio: 'pipe',
+    stdio: ['inherit', 'pipe', 'pipe'],
     cwd,
     reject: false,
   });
-  proc.stdin?.pipe(process.stdin);
   proc.stdout?.pipe(process.stdout);
   proc.stderr?.pipe(process.stderr);
   const result = await proc;
@@ -465,9 +476,13 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
       activeStack === 'rstest' ||
       activeStack === 'rslib' ||
       activeStack === 'rsdoctor' ||
-      activeStack === 'rspress'
+      activeStack === 'rspress' ||
+      activeStack === 'rslint'
     ) {
-      const packages = await getMonorepoPackages(activeStack);
+      const packages =
+        activeStack === 'rslint'
+          ? getRslintPackages(stackPath)
+          : await getMonorepoPackages(activeStack);
       if (options.release) {
         for (const pkgInfo of packages) {
           if (skippedPackageOverrides.has(pkgInfo.name)) {
@@ -484,11 +499,20 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
           overrides[pkgInfo.name] = options.release;
         }
       } else {
+        const localOverrides =
+          activeStack === 'rslint'
+            ? await packRslintPackages(
+                stackPath,
+                path.join(workspaceRoot, 'rslint-tarballs'),
+                env,
+              )
+            : undefined;
         for (const pkgInfo of packages) {
           if (skippedPackageOverrides.has(pkgInfo.name)) {
             continue;
           }
-          overrides[pkgInfo.name] ||= pkgInfo.directory;
+          overrides[pkgInfo.name] ||=
+            localOverrides?.[pkgInfo.name] ?? pkgInfo.directory;
         }
       }
       await applyPackageOverrides({
@@ -553,6 +577,17 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
         },
         devDependencyStrategy: 'all',
       });
+    }
+    if (activeStack === 'rslint') {
+      const expectedVersion =
+        options.release ??
+        JSON.parse(
+          fs.readFileSync(
+            path.join(stackPath, 'packages/rslint/package.json'),
+            'utf8',
+          ),
+        ).version;
+      verifyRslintInstall(dir, expectedVersion);
     }
     await afterInstallCommand?.(pkg.scripts);
     await beforeBuildCommand?.(pkg.scripts);
@@ -640,6 +675,28 @@ export async function buildStack({ verify = false }: { verify?: boolean }) {
     if (verify) {
       const runTest = serializeCommand(getCommand('pnpm', 'run', ['test:js']));
       await $`${runTest}`;
+    }
+  } else if (activeStack === 'rslint') {
+    await $`git submodule update --init --recursive`;
+    await $`pnpm install --frozen-lockfile`;
+    await $`pnpm --filter @rslint/native run build`;
+    const schemas = await execaFile(
+      'go',
+      ['run', './tools/dump_rule_schemas'],
+      {
+        cwd: stackPath,
+        env,
+        stderr: 'inherit',
+      },
+    );
+    fs.writeFileSync(
+      path.join(stackPath, 'packages/rslint/rule-schemas.json'),
+      schemas.stdout,
+    );
+    await $`pnpm --filter @rslint/core... run build`;
+    verifyRslintBuild(getRslintPackages(stackPath));
+    if (verify) {
+      await $`pnpm --filter @rslint/core run test`;
     }
   } else {
     const frozenInstall = serializeCommand(getCommand('pnpm', 'frozen'));
@@ -1007,7 +1064,7 @@ async function applyPackageOverrides({
   if (pm === 'pnpm') {
     const pnpmArgs = [...(installArgs?.pnpm ?? [])];
     // pnpm 11 dropped `NPM_CONFIG_*` env vars in favor of `PNPM_CONFIG_*`
-    // (see pnpm/pnpm#11189), so rspack suites that publish to a local
+    // (see pnpm/pnpm#11189), so suites that publish to a local
     // Verdaccio can no longer rely on `NPM_CONFIG_REGISTRY`. Forward it as
     // a CLI flag, which works for both pnpm 10 and 11.
     if (process.env.NPM_CONFIG_REGISTRY) {
@@ -1042,7 +1099,7 @@ export function parseStackMajor(projectPath: string): number {
   const packageJsonPath = path.join(
     projectPath,
     'packages',
-    'core',
+    activeStack === 'rslint' ? 'rslint' : 'core',
     'package.json',
   );
   const content = fs.readFileSync(packageJsonPath, 'utf-8');
