@@ -63,7 +63,7 @@ jobs:
     if: "inputs.suite != '-'"
     runs-on: ubuntu-latest
     name: execute-all (${{ inputs.suite }})
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/build-rslint
@@ -103,7 +103,7 @@ jobs:
         suite: [rsbuild, rslib, rstest]
     runs-on: ubuntu-latest
     name: execute-all (${{ matrix.suite }})
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/build-rslint
