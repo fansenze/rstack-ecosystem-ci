@@ -1,5 +1,53 @@
 [
   {
+    "commitSha": "07abe4e9a79dbcc2db5b92ff883c7beddc5c2856",
+    "commitTimestamp": "2026-10-12T07:11:30Z",
+    "commitMessage": "ci: add Linux test workflow, align Node versions, fail-open skip detection (#3730)",
+    "author": {
+      "name": "Marrrrrrrrry",
+      "email": "34876935+Marrrrrrrrry@users.noreply.github.com",
+      "login": "Marrrrrrrrry"
+    },
+    "repository": {
+      "fullName": "web-infra-dev/rspress",
+      "name": "rspress"
+    },
+    "workflowRunUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38216419822",
+    "overallStatus": "success",
+    "suites": [
+      {
+        "name": "rstack-cli",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38216419822/job/114702117513"
+      },
+      {
+        "name": "rsbuild",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38216419822/job/114702117522"
+      },
+      {
+        "name": "rslib",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38216419822/job/114702117533"
+      },
+      {
+        "name": "rspress-plugins",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38216419822/job/114702117592"
+      },
+      {
+        "name": "rspack",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38216419822/job/114702117632"
+      },
+      {
+        "name": "rstest",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38216419822/job/114702117748"
+      }
+    ]
+  },
+  {
     "commitSha": "ef6310cef59c48b8af055213df7b25c8f7e0a713",
     "commitTimestamp": "2026-10-12T06:04:27Z",
     "commitMessage": "chore(deps): update dependency memfs to ^4.80.0 (#3724)",
