@@ -1,5 +1,28 @@
 [
   {
+    "commitSha": "06791bee60f1b18b200cab4b70f23b5700018ffe",
+    "commitTimestamp": "2026-10-12T06:08:06Z",
+    "commitMessage": "chore(deps): update all patch dependencies (#2091)",
+    "author": {
+      "name": "renovate[bot]",
+      "email": "29139614+renovate[bot]@users.noreply.github.com",
+      "login": "renovate[bot]"
+    },
+    "repository": {
+      "fullName": "web-infra-dev/rsdoctor",
+      "name": "rsdoctor"
+    },
+    "workflowRunUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38211334967",
+    "overallStatus": "success",
+    "suites": [
+      {
+        "name": "rsbuild",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38211334967/job/114685962824"
+      }
+    ]
+  },
+  {
     "commitSha": "6c64bd317c89f899dfa3153efb99e320d00a1727",
     "commitTimestamp": "2026-10-12T05:59:28Z",
     "commitMessage": "chore(deps): update dependency @lynx-js/react to ^0.127.0 (#2092)",
