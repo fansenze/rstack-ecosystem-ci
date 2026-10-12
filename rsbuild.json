@@ -1,5 +1,63 @@
 [
   {
+    "commitSha": "ad09fba097716def80e1f3bcd1b7feb888e60cbc",
+    "commitTimestamp": "2026-10-12T06:49:28Z",
+    "commitMessage": "perf(core): reuse source buffers for file size reporting (#8658)",
+    "author": {
+      "name": "Jiahan Chen",
+      "email": "chenjiahan.jait@bytedance.com",
+      "login": "chenjiahan"
+    },
+    "repository": {
+      "fullName": "web-infra-dev/rsbuild",
+      "name": "rsbuild"
+    },
+    "workflowRunUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457",
+    "overallStatus": "success",
+    "suites": [
+      {
+        "name": "rslib",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457/job/114695865304"
+      },
+      {
+        "name": "modernjs",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457/job/114695865395"
+      },
+      {
+        "name": "rspress",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457/job/114695865407"
+      },
+      {
+        "name": "lynx-stack",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457/job/114695865408"
+      },
+      {
+        "name": "plugins",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457/job/114695865441"
+      },
+      {
+        "name": "rstest",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457/job/114695865456"
+      },
+      {
+        "name": "examples",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457/job/114695865460"
+      },
+      {
+        "name": "rstack-cli",
+        "status": "success",
+        "logUrl": "https://github.com/rstackjs/rstack-ecosystem-ci/actions/runs/38214467457/job/114695865574"
+      }
+    ]
+  },
+  {
     "commitSha": "1be68da36cdb7ab0b5062495e93a40d82f637580",
     "commitTimestamp": "2026-10-12T06:42:19Z",
     "commitMessage": "perf(core): avoid asset descriptor lookups in file size reporting (#8657)",
