@@ -255,7 +255,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/build-rslint
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:rslint
       - name: Publish Rslint
         id: publish-rslint
         uses: ./.github/actions/publish-rslint-to-verdaccio

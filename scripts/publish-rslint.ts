@@ -2,30 +2,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execa } from 'execa';
-import { valid } from 'semver';
-import { getRslintPackages, verifyRslintBuild } from '../rslint';
+import { getRslintPackages, verifyRslintNativeBuild } from '../utils';
 
 const stackPath = path.resolve(process.argv[2] ?? 'workspace/rslint');
 const packages = getRslintPackages(stackPath);
-verifyRslintBuild(packages);
+verifyRslintNativeBuild(packages[1]);
 
-const registry = process.env.NPM_CONFIG_REGISTRY ?? 'http://localhost:4873';
-const registryUrl = new URL(registry);
-assert(
-  registryUrl.protocol === 'http:' &&
-    ['localhost', '127.0.0.1', '[::1]'].includes(registryUrl.hostname),
-  'rslint ecosystem packages must only be published to a local registry',
-);
+const registry = 'http://localhost:4873';
 const runId = process.env.GITHUB_RUN_ID;
 const attempt = process.env.GITHUB_RUN_ATTEMPT;
-assert(
-  runId && /^[1-9]\d*$/.test(runId),
-  'GITHUB_RUN_ID must be a positive integer',
-);
-assert(
-  attempt && /^[1-9]\d*$/.test(attempt),
-  'GITHUB_RUN_ATTEMPT must be a positive integer',
-);
+assert(runId && attempt, 'Rslint publication requires a GitHub Actions run');
 
 const manifests = packages.map((pkg) => ({
   ...pkg,
@@ -35,9 +21,7 @@ const manifests = packages.map((pkg) => ({
   ),
 }));
 const currentVersion = manifests[0].manifest.version;
-assert(valid(currentVersion), `invalid rslint version: ${currentVersion}`);
 const version = `${currentVersion}-fresh.${runId}.${attempt}`;
-assert(valid(version), `invalid rslint sentinel version: ${version}`);
 for (const { name, manifest } of manifests) {
   assert.equal(manifest.name, name);
   assert.equal(

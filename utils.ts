@@ -1,5 +1,7 @@
 import assert from 'node:assert';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import actionsCore from '@actions/core';
@@ -12,12 +14,6 @@ import {
   execaCommand,
 } from 'execa';
 import yaml from 'yaml';
-import {
-  getRslintPackages,
-  packRslintPackages,
-  verifyRslintBuild,
-  verifyRslintInstall,
-} from './rslint';
 import type {
   Agent,
   EnvironmentData,
@@ -373,6 +369,169 @@ async function getRspackPackageData(): Promise<RspackPackageData> {
   return rspackPackageData;
 }
 
+interface RslintPackageInfo {
+  name: string;
+  directory: string;
+}
+
+export function getRslintPackages(
+  stackPath: string,
+): [RslintPackageInfo, RslintPackageInfo] {
+  const { platform, arch } = process;
+  assert(
+    ['darwin', 'linux', 'win32'].includes(platform) &&
+      ['arm64', 'x64'].includes(arch),
+    `unsupported rslint platform: ${platform}-${arch}`,
+  );
+  let suffix = '';
+  if (platform === 'linux') {
+    const report = process.report.getReport() as {
+      header: { glibcVersionRuntime?: string };
+    };
+    suffix = report.header.glibcVersionRuntime ? '-gnu' : '-musl';
+  } else if (platform === 'win32') {
+    suffix = '-msvc';
+  }
+  const tuple = `${platform}-${arch}${suffix}`;
+  return [
+    {
+      name: '@rslint/core',
+      directory: path.join(stackPath, 'packages/rslint'),
+    },
+    {
+      name: `@rslint/native-${tuple}`,
+      directory: path.join(stackPath, 'npm/rslint', tuple),
+    },
+  ];
+}
+
+export function verifyRslintNativeBuild(native: RslintPackageInfo) {
+  const tuple = native.name.slice('@rslint/native-'.length);
+  const binary = tuple.startsWith('win32-') ? 'rslint.exe' : 'rslint';
+  for (const file of [binary, `rslint.${tuple}.node`]) {
+    const output = path.join(native.directory, file);
+    const stat = fs.statSync(output, { throwIfNoEntry: false });
+    assert(
+      stat?.isFile() && stat.size > 0,
+      `missing or empty rslint build output: ${output}`,
+    );
+  }
+}
+
+async function packRslintPackages(
+  stackPath: string,
+  outputDir: string,
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  const packages = getRslintPackages(stackPath);
+  verifyRslintNativeBuild(packages[1]);
+  fs.mkdirSync(outputDir, { recursive: true });
+  // Keep symlink aliases (e.g. macOS /var) out of pnpm's relative file IDs.
+  const realOutputDir = fs.realpathSync(outputDir);
+  const overrides: Record<string, string> = {};
+  for (const pkg of packages) {
+    const name = pkg.name.replace('@', '').replace('/', '-');
+    const temporaryTarball = path.join(realOutputDir, `${name}.tgz`);
+    // pnpm resolves workspace/catalog specs while packing, as it does on publish.
+    await execaFile('pnpm', ['pack', '--out', temporaryTarball], {
+      cwd: pkg.directory,
+      env,
+      stdio: 'inherit',
+    });
+    // A reused file: path can retain old same-version binaries in pnpm's cache.
+    // Bind the dependency URL to the actual bytes, including during bisect.
+    const digest = createHash('sha256')
+      .update(fs.readFileSync(temporaryTarball))
+      .digest('hex');
+    const tarball = path.join(realOutputDir, `${name}-${digest}.tgz`);
+    fs.renameSync(temporaryTarball, tarball);
+    overrides[pkg.name] = `file:${tarball}`;
+  }
+  return overrides;
+}
+
+function resolveInstalledPackage(
+  callerManifest: string,
+  name: string,
+  consumer: string,
+): RslintPackageInfo {
+  const realCaller = fs.realpathSync(callerManifest);
+  const callerDir = path.dirname(realCaller);
+  const lookups = createRequire(realCaller).resolve.paths(name) ?? [];
+  const consumerBoundary = path.join(consumer, 'node_modules');
+  // pnpm can store packages outside the checkout. In that case, stop at the
+  // caller's own dependency links, rather than searching another workspace.
+  const boundary = lookups.includes(consumerBoundary)
+    ? consumerBoundary
+    : lookups.find((lookup) => callerDir.startsWith(`${lookup}${path.sep}`));
+  const end = boundary ? lookups.indexOf(boundary) : -1;
+  assert(end >= 0, `missing dependency lookup boundary for ${realCaller}`);
+  // Follow Node's lookup directories through the current links. require.resolve
+  // caches old targets across installs in a long-running bisect process.
+  for (const lookup of lookups.slice(0, end + 1)) {
+    const directory = path.join(lookup, name);
+    if (fs.existsSync(path.join(directory, 'package.json'))) {
+      return { name, directory: fs.realpathSync(directory) };
+    }
+  }
+  throw new Error(
+    `${name} is missing from the consumer dependency tree; ancestor fallback is disabled`,
+  );
+}
+
+// Check resolution from the actual caller. A root-level core package alone
+// cannot prove that `rs lint` uses it through rstack's dependency tree.
+function verifyRslintInstall(dir: string, expectedVersion: string) {
+  const consumer = fs.realpathSync(dir);
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(consumer, 'package.json'), 'utf8'),
+  );
+  const dependencies = {
+    ...manifest.dependencies,
+    ...manifest.devDependencies,
+  };
+  const callers = [
+    ...(dependencies['@rslint/core'] ? ['@rslint/core'] : []),
+    ...(dependencies.rstack ? ['rstack'] : []),
+  ];
+  assert(
+    callers.length,
+    `${dir} does not consume rslint directly or through rstack`,
+  );
+  const [, hostNative] = getRslintPackages('');
+  for (const caller of callers) {
+    const callerManifest =
+      caller === 'rstack'
+        ? path.join(consumer, 'node_modules/rstack/package.json')
+        : path.join(consumer, 'package.json');
+    const core = resolveInstalledPackage(
+      callerManifest,
+      '@rslint/core',
+      consumer,
+    );
+    const native = resolveInstalledPackage(
+      path.join(core.directory, 'package.json'),
+      hostNative.name,
+      consumer,
+    );
+    const packages: [RslintPackageInfo, RslintPackageInfo] = [core, native];
+    for (const pkg of packages) {
+      const installed = JSON.parse(
+        fs.readFileSync(path.join(pkg.directory, 'package.json'), 'utf8'),
+      );
+      assert.strictEqual(installed.name, pkg.name);
+      assert.strictEqual(
+        installed.version,
+        expectedVersion,
+        `${caller} resolved an unexpected ${pkg.name} version`,
+      );
+    }
+    console.log(
+      `Verified ${caller} uses @rslint/core and ${hostNative.name}@${expectedVersion}`,
+    );
+  }
+}
+
 export async function runInRepo(options: RunOptions & RepoOptions) {
   if (options.verify == null) {
     options.verify = true;
@@ -694,7 +853,7 @@ export async function buildStack({ verify = false }: { verify?: boolean }) {
       schemas.stdout,
     );
     await $`pnpm --filter @rslint/core... run build`;
-    verifyRslintBuild(getRslintPackages(stackPath));
+    verifyRslintNativeBuild(getRslintPackages(stackPath)[1]);
     if (verify) {
       await $`pnpm --filter @rslint/core run test`;
     }
@@ -1064,7 +1223,7 @@ async function applyPackageOverrides({
   if (pm === 'pnpm') {
     const pnpmArgs = [...(installArgs?.pnpm ?? [])];
     // pnpm 11 dropped `NPM_CONFIG_*` env vars in favor of `PNPM_CONFIG_*`
-    // (see pnpm/pnpm#11189), so suites that publish to a local
+    // (see pnpm/pnpm#11189), so rspack suites that publish to a local
     // Verdaccio can no longer rely on `NPM_CONFIG_REGISTRY`. Forward it as
     // a CLI flag, which works for both pnpm 10 and 11.
     if (process.env.NPM_CONFIG_REGISTRY) {
